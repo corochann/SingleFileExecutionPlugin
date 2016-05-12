@@ -7,7 +7,10 @@ CLion is a C/C++ IDE on [IntelliJ IDEA](https://www.jetbrains.com/idea/) platfor
 CLion is working on CMake platform, so when you want to run a single file with main() function you need to configure CMakeLists.txt file everytime.
 This plugin helps you to add a configuration to quickly run a single .c/.cpp file.
 
-Check **[Document page](http://corochann.com/projects/single-file-execution-plugin)** for detail information.
+Links
+
+ - **[Document page](http://corochann.com/projects/single-file-execution-plugin)**: for more detail information.
+ - **[Official plugin page](https://plugins.jetbrains.com/plugin/8352?pr=)**
 
 <h2>Installation</h2>
 <p>C/C++ Single File Execution plugin is uploaded on JetBrains repositry, so you can download by navigating [File] → [Settings] → [Plugins] tab → click [Browse repositries...] in CLion.</p>
