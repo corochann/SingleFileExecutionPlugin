@@ -1,0 +1,46 @@
+<idea-plugin version="2">
+  <id>com.corochann.plugin.clion.singlefileexecutionplugin</id>
+  <name>C/C++ Single File Execution</name>
+  <version>1.0</version>
+  <vendor email="corochannz@gmail.com" url="http://corochann.com">corochann</vendor>
+
+  <description><![CDATA[
+      When you want to run single c/cpp file in CLion, you must configure CMakeLists.txt
+      to declare add_executable() all the time.
+      It is troublesome, especially when you want to run many of the files independently within the same project.<br>
+      This plugin supports to add "add_executable()" statement to CMakeLists.txt, so that you can easily
+      build and run a single file!
+    ]]></description>
+
+  <change-notes><![CDATA[
+      Release first version.
+    ]]>
+  </change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="141.0"/>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <!-- uncomment to enable plugin in all products
+  <depends>com.intellij.modules.lang</depends>
+  <depends>com.intellij.modules.clion</depends>
+  -->
+  <depends>com.intellij.modules.lang</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <projectConfigurable groupId="tools" displayName="Single File Execution Plugin" id="preferences.SingleFileExecutionConfigurable" instance="SingleFileExecutionConfigurable" />
+    <projectService serviceInterface="SingleFileExecutionConfig" serviceImplementation="SingleFileExecutionConfig"/>
+  </extensions>
+
+  <actions>
+    <!-- Add your actions here -->
+    <action id="SingleFileExecutionAction" class="SingleFileExecutionAction" text="Add executable for single c/cpp file"
+            description="Adding add_executable() to CMakeLists.txt">
+      <add-to-group group-id="CodeMenu" anchor="last"/>
+      <add-to-group group-id="EditorPopupMenu"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl alt E"/>
+    </action>
+  </actions>
+
+</idea-plugin>
