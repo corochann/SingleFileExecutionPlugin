@@ -1,19 +1,20 @@
 <idea-plugin version="2">
   <id>com.corochann.plugin.clion.singlefileexecutionplugin</id>
   <name>C/C++ Single File Execution</name>
-  <version>1.0</version>
+  <version>1.1</version>
   <vendor email="corochannz@gmail.com" url="http://corochann.com">corochann</vendor>
 
   <description><![CDATA[
-      When you want to run single c/cpp file in CLion, you must configure CMakeLists.txt
-      to declare add_executable() all the time.
+      When you want to run single c/cpp file in CLion, you must configure <code>CMakeLists.txt</code>
+      to declare <code>add_executable()</code> all the time.
       It is troublesome, especially when you want to run many of the files independently within the same project.<br>
-      This plugin supports to add "add_executable()" statement to CMakeLists.txt, so that you can easily
+      This plugin supports to insert <code>add_executable()</code> statement into <code>CMakeLists.txt</code>, so that you can easily
       build and run a single file!
     ]]></description>
 
   <change-notes><![CDATA[
       Release first version.
+      version 1.1: Bug fix.
     ]]>
   </change-notes>
 
