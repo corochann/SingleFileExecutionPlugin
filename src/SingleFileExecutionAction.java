@@ -59,7 +59,7 @@ public class SingleFileExecutionAction extends AnAction {
 
         /* parse cmakelistDocument to check existence of exe_name */
 
-        String regex = "add_executable\\s*\\(\\s*" + exeName + "\\s+(((\\S+)\\s+)*\\S+)\\s*\\)";
+        String regex = "add_executable\\s*?\\(\\s*?" + exeName + "\\s+?(((\\S+?)\\s+?)*?\\S+?)\\s*?\\)";
                 //"\\s*add_executable\\s*\\(\\s*(\\S+)\\s+(((\\S+)\\s+)*\\S+)\\s*\\)";
         Pattern pattern = Pattern.compile(regex);
         Matcher m = pattern.matcher(cmakelistDocument.getText());
@@ -130,7 +130,7 @@ public class SingleFileExecutionAction extends AnAction {
                  * This regular expression finds
                  * "add_executable(XXXX YYYY.cpp ZZZZ.cpp)" where XXXX is executable name, YYYY.cpp and ZZZZ.cpp are the source files.
                  */
-                String regex = "add_executable\\s*\\(\\s*" + exeName + "\\s+(((\\S+)\\s+)*\\S+)\\s*\\)";
+                String regex = "add_executable\\s*?\\(\\s*?" + exeName + "\\s+?(((\\S+?)\\s+?)*?\\S+?)\\s*?\\)";
                 String updatedText = Pattern.compile(regex).matcher(cmakelistDocument.getText()).replaceFirst("add_executable("+ exeName + " " + relativeSourcePath +")");
                 cmakelistDocument.setText(updatedText);
             }
