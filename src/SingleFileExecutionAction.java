@@ -15,6 +15,7 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 
 import java.io.File;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,6 +46,13 @@ public class SingleFileExecutionAction extends AnAction {
 
         File file = new File(cmakelistFilePath);
         VirtualFile cmakelistFile = LocalFileSystem.getInstance().findFileByIoFile(file);
+        if (cmakelistFile == null) {
+            /* CMakeLists.txt not exist */
+            Notifications.Bus.notify (
+                    new Notification("singlefileexecutionaction", "Single File Execution Plugin", "Fail to access " + cmakelistFilePath, NotificationType.ERROR)
+            );
+            return;
+        }
         Document cmakelistDocument = FileDocumentManager.getInstance().getDocument(cmakelistFile);
 
         VirtualFile vFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);  // get source file (* currently selected file in editor)
@@ -58,22 +66,28 @@ public class SingleFileExecutionAction extends AnAction {
         String relativeSourcePath = new File(project.getBasePath()).toURI().relativize(new File(vFile.getPath()).toURI()).getPath();
 
         /* parse cmakelistDocument to check existence of exe_name */
+        /* See http://mmasashi.hatenablog.com/entry/20091129/1259511129 for lazy, greedy search */
+        String regex = "^add_executable\\s*?\\(\\s*?" + exeName + "\\s+(((\\S+)\\s+)*\\S+)\\s*\\)";
 
-        String regex = "add_executable\\s*?\\(\\s*?" + exeName + "\\s+?(((\\S+?)\\s+?)*?\\S+?)\\s*?\\)";
-                //"\\s*add_executable\\s*\\(\\s*(\\S+)\\s+(((\\S+)\\s+)*\\S+)\\s*\\)";
         Pattern pattern = Pattern.compile(regex);
-        Matcher m = pattern.matcher(cmakelistDocument.getText());
 
+        Scanner scanner = new Scanner(cmakelistDocument.getText());
         int exeExistFlag = EXE_NOT_EXIST;
-        if (m.find()) {
-            //String existingExeName = m.group(1);
-            String existingSourceName = m.group(1);
-            if (existingSourceName.equals(relativeSourcePath)) {
-                exeExistFlag = EXE_EXIST_SAME_SOURCE;
-            } else {
-                exeExistFlag = EXE_EXIST_DIFFERENT_SOURCE;
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            Matcher m = pattern.matcher(line);
+            if (m.find()) {
+                //String existingExeName = m.group(1);
+                String existingSourceName = m.group(1);
+                if (existingSourceName.contains(relativeSourcePath)) {
+                    exeExistFlag = EXE_EXIST_SAME_SOURCE;
+                } else {
+                    exeExistFlag = EXE_EXIST_DIFFERENT_SOURCE;
+                }
+                break;
             }
         }
+        scanner.close();
 
         //LocalFileSystem.getInstance().findFileByIoFile();
         switch(exeExistFlag) {
@@ -117,26 +131,48 @@ public class SingleFileExecutionAction extends AnAction {
         ApplicationManager.getApplication().runWriteAction(new Runnable() {
             @Override
             public void run() {
-                cmakelistDocument.setText(cmakelistDocument.getText() + "\nadd_executable("+ exeName + " " + relativeSourcePath +")");
+                cmakelistDocument.setText(cmakelistDocument.getText() + "\nadd_executable("+ exeName + " " + quotingSourcePath(relativeSourcePath) +")");
             }
         });
     }
 
     private void updateAddExecutable(final Document cmakelistDocument, final String exeName, final String relativeSourcePath) {
+        String updatedDocument = "";
+
+        /*
+         * This regular expression finds
+         * "add_executable(XXXX YYYY.cpp ZZZZ.cpp)" where XXXX is executable name, YYYY.cpp and ZZZZ.cpp are the source files.
+         */
+        String regex = "^add_executable\\s*?\\(\\s*?" + exeName + "\\s+(((\\S+)\\s+)*\\S+)\\s*\\)";
+        Pattern pattern = Pattern.compile(regex);
+        Scanner scanner = new Scanner(cmakelistDocument.getText());
+
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+
+            Matcher m = pattern.matcher(line);
+            if (m.find()) {
+                line = m.replaceFirst("add_executable("+ exeName + " " + quotingSourcePath(relativeSourcePath) +")");
+            }
+            updatedDocument += line + '\n';
+        }
+        scanner.close();
+        final String updatedText = updatedDocument;
         ApplicationManager.getApplication().runWriteAction(new Runnable() {
             @Override
             public void run() {
-                /*
-                 * This regular expression finds
-                 * "add_executable(XXXX YYYY.cpp ZZZZ.cpp)" where XXXX is executable name, YYYY.cpp and ZZZZ.cpp are the source files.
-                 */
-                String regex = "add_executable\\s*?\\(\\s*?" + exeName + "\\s+?(((\\S+?)\\s+?)*?\\S+?)\\s*?\\)";
-                String updatedText = Pattern.compile(regex).matcher(cmakelistDocument.getText()).replaceFirst("add_executable("+ exeName + " " + relativeSourcePath +")");
                 cmakelistDocument.setText(updatedText);
             }
         });
     }
 
+    private String quotingSourcePath(String path) {
+        String quotedPath = path;
+        if (path.contains(" ") || path.contains("(") || path.contains(")")) {
+            quotedPath = '"' + quotedPath + '"';
+        }
+        return quotedPath;
+    }
 
     @Override
     public void update(AnActionEvent e) {
