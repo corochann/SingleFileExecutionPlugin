@@ -17,15 +17,21 @@ import org.jetbrains.annotations.Nullable;
 )
 public class SingleFileExecutionConfig implements PersistentStateComponent<SingleFileExecutionConfig> {
 
-    public static final String DEFAULT_EXECUTABLE_NAME = "%FILENAME%";
-    public String executableName = DEFAULT_EXECUTABLE_NAME;
-    public static final boolean DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG = false;
-    public boolean notShowOverwriteConfirmDialog = DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG;
+    /* add_executable(): exe name */
+    static final String EXECUTABLE_NAME_FILENAME = "%FILENAME%";
+    public static final String DEFAULT_EXECUTABLE_NAME = EXECUTABLE_NAME_FILENAME;
+    private String executableName = DEFAULT_EXECUTABLE_NAME;
+    /* set_target_properties(): runtime output directory */
+    static final String PROJECTDIR = "%PROJECTDIR%";
+    static final String FILEDIR = "%FILEDIR%";
+    public static final String DEFAULT_RUNTIME_OUTPUT_DIRECTORY = "";
+    private String runtimeOutputDirectory = "";   // set empty string as default
+    private static final boolean DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG = false;
+    boolean notShowOverwriteConfirmDialog = DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG;
 
     SingleFileExecutionConfig() { }
 
-
-    public String getExecutableName() {
+    String getExecutableName() {
         if (executableName == null) {
             // Error, it should not happen
             executableName = "";
@@ -33,8 +39,16 @@ public class SingleFileExecutionConfig implements PersistentStateComponent<Singl
         return executableName;
     }
 
-    public void setExecutableName(String executableName) {
+    void setExecutableName(String executableName) {
         this.executableName = executableName;
+    }
+
+    public String getRuntimeOutputDirectory() {
+        return runtimeOutputDirectory;
+    }
+
+    public void setRuntimeOutputDirectory(String runtimeOutputDirectory) {
+        this.runtimeOutputDirectory = runtimeOutputDirectory;
     }
 
     /** check if any configuration has done or not */

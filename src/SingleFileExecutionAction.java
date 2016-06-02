@@ -28,18 +28,21 @@ public class SingleFileExecutionAction extends AnAction {
     public static final int EXE_NOT_EXIST = 0;
     public static final int EXE_EXIST_SAME_SOURCE = 1;
     public static final int EXE_EXIST_DIFFERENT_SOURCE = 2;
+    private VirtualFile sourceFile;
+    private SingleFileExecutionConfig config;
+    private Project project;
 
     @Override
     public void actionPerformed(AnActionEvent e) {
 
-        //Get all the required data from data keys
-        final Editor editor = e.getRequiredData(CommonDataKeys.EDITOR);
-        final Project project = e.getRequiredData(CommonDataKeys.PROJECT);
-        final SingleFileExecutionConfig config = SingleFileExecutionConfig.getInstance(project);
+        /* Get all the required data from data keys */
+        //final Editor editor = e.getRequiredData(CommonDataKeys.EDITOR);
+        project = e.getRequiredData(CommonDataKeys.PROJECT);
+        config = SingleFileExecutionConfig.getInstance(project);
         String cmakelistFilePath = project.getBasePath() + "/CMakeLists.txt";
 
         //Access document, caret, and selection
-        final Document document = editor.getDocument();
+        //final Document document = editor.getDocument();
         //final SelectionModel selectionModel = editor.getSelectionModel();
         //final int start = selectionModel.getSelectionStart();
         //final int end = selectionModel.getSelectionEnd();
@@ -55,15 +58,15 @@ public class SingleFileExecutionAction extends AnAction {
         }
         Document cmakelistDocument = FileDocumentManager.getInstance().getDocument(cmakelistFile);
 
-        VirtualFile vFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);  // get source file (* currently selected file in editor)
+        // get source file (* currently selected file in editor)
+        sourceFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);
         //vFile.getCanonicalPath();   // source file path (absolute path)
         //vFile.getPath();            // source file path (absolute path)
+        String fileName = sourceFile != null ? sourceFile.getName() : null;  // source file name (but not include path)
 
-        String fileName = vFile != null ? vFile.getName() : null;  // source file name (but not include path)
-
-        String exeName = config.getExecutableName().replace("%FILENAME%", vFile.getNameWithoutExtension());
+        String exeName = buildExeName(config.getExecutableName());
         String sourceName = fileName;
-        String relativeSourcePath = new File(project.getBasePath()).toURI().relativize(new File(vFile.getPath()).toURI()).getPath();
+        String relativeSourcePath = new File(project.getBasePath()).toURI().relativize(new File(sourceFile.getPath()).toURI()).getPath();
 
         /* parse cmakelistDocument to check existence of exe_name */
         /* See http://mmasashi.hatenablog.com/entry/20091129/1259511129 for lazy, greedy search */
@@ -131,12 +134,22 @@ public class SingleFileExecutionAction extends AnAction {
         ApplicationManager.getApplication().runWriteAction(new Runnable() {
             @Override
             public void run() {
-                cmakelistDocument.setText(cmakelistDocument.getText() + "\nadd_executable("+ exeName + " " + quotingSourcePath(relativeSourcePath) +")");
+                String updatedText = cmakelistDocument.getText();
+                /* add_executable statement */
+                updatedText += "\n" + constructAddExecutable(exeName, relativeSourcePath);
+                /* set_target_properties statement */
+                String runtimeDir = config.getRuntimeOutputDirectory();
+                if (runtimeDir != null && !runtimeDir.equals("")) {
+                    String outputDir = quoteString(buildRuntimeOutputDirectory());
+                    updatedText += "\n" + constructSetTargetProperties(exeName, outputDir);
+                }
+                cmakelistDocument.setText(updatedText);
             }
         });
     }
 
     private void updateAddExecutable(final Document cmakelistDocument, final String exeName, final String relativeSourcePath) {
+        String runtimeDir = config.getRuntimeOutputDirectory();
         String updatedDocument = "";
 
         /*
@@ -145,14 +158,29 @@ public class SingleFileExecutionAction extends AnAction {
          */
         String regex = "^add_executable\\s*?\\(\\s*?" + exeName + "\\s+(((\\S+)\\s+)*\\S+)\\s*\\)";
         Pattern pattern = Pattern.compile(regex);
+
+        String regex2 = "^set_target_properties\\s*?\\(\\s*?" + exeName + "\\s+(((\\S+)\\s+)*\\S+)\\s*\\)";
+        Pattern pattern2 = Pattern.compile(regex2);
+
         Scanner scanner = new Scanner(cmakelistDocument.getText());
 
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
 
             Matcher m = pattern.matcher(line);
+            Matcher m2 = pattern2.matcher(line);
+            if (m2.find()) {
+                /* Skip adding line for old "set_target_properties()" statement */
+                continue;
+            }
             if (m.find()) {
-                line = m.replaceFirst("add_executable("+ exeName + " " + quotingSourcePath(relativeSourcePath) +")");
+                /* add_executable */
+                line = m.replaceFirst(constructAddExecutable(exeName, relativeSourcePath));
+                /* set_target_properties */
+                if (runtimeDir != null && !runtimeDir.equals("")) {
+                    String outputDir = quoteString(buildRuntimeOutputDirectory());
+                    line += "\n" + constructSetTargetProperties(exeName, outputDir);
+                }
             }
             updatedDocument += line + '\n';
         }
@@ -166,12 +194,46 @@ public class SingleFileExecutionAction extends AnAction {
         });
     }
 
+    /** building add_executable(exeName sourceFilePath) statement */
+    private String constructAddExecutable(String exeName, String sourceFilePath) {
+        return "add_executable("+ exeName + " " + quotingSourcePath(sourceFilePath) +")";
+    }
+
+    /** building set_target_properties(exeName PROPERTIES RUNTIME_OUTPUT_DIRECTORY ourputDir) statement */
+    private String constructSetTargetProperties(String exeName, String outputDir) {
+        return "set_target_properties(" + exeName + " PROPERTIES RUNTIME_OUTPUT_DIRECTORY " + outputDir + ")";
+    }
+
+    /** build target exeName according based on the configuration */
+    private String buildExeName(String exeName) {
+        String newExeName;
+        /* %FILENAME% replacement */
+        newExeName = exeName.replace(SingleFileExecutionConfig.EXECUTABLE_NAME_FILENAME, sourceFile.getNameWithoutExtension());
+        return newExeName;
+    }
+
+    private String buildRuntimeOutputDirectory() {
+        String newRuntimeOutputDirectory = config.getRuntimeOutputDirectory();
+        /* source file's parent directory absolute path */
+        //String sourceDir = new File(sourceFile.getPath()).getAbsoluteFile().getParentFile().getName();
+        String sourceDirRelativePath = new File(project.getBasePath()).toURI().relativize(
+                new File(sourceFile.getPath()).getParentFile().toURI()).getPath();
+
+        newRuntimeOutputDirectory = newRuntimeOutputDirectory.replace(SingleFileExecutionConfig.PROJECTDIR, "${PROJECT_SOURCE_DIR}");
+        newRuntimeOutputDirectory = newRuntimeOutputDirectory.replace(SingleFileExecutionConfig.FILEDIR, "${CMAKE_CURRENT_SOURCE_DIR}/" + sourceDirRelativePath);
+        return newRuntimeOutputDirectory;
+    }
+
     private String quotingSourcePath(String path) {
         String quotedPath = path;
         if (path.contains(" ") || path.contains("(") || path.contains(")")) {
             quotedPath = '"' + quotedPath + '"';
         }
         return quotedPath;
+    }
+
+    private String quoteString(String str) {
+        return '"' + str + '"';
     }
 
     @Override
