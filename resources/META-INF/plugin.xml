@@ -1,7 +1,7 @@
 <idea-plugin version="2">
   <id>com.corochann.plugin.clion.singlefileexecutionplugin</id>
   <name>C/C++ Single File Execution</name>
-  <version>1.2</version>
+  <version>1.3</version>
   <vendor email="corochannz@gmail.com" url="http://corochann.com">corochann</vendor>
 
   <description><![CDATA[
@@ -19,6 +19,7 @@
     ]]></description>
 
   <change-notes><![CDATA[
+      <p>version 1.3: Bug fix for config. - Settings was not saved persistently</p>
       <p>version 1.2:</p>
       <ul>
       <li>Add set_target_properties() configuration for target specific runtime output directory setting.</li>
