@@ -17,17 +17,18 @@ import org.jetbrains.annotations.Nullable;
 )
 public class SingleFileExecutionConfig implements PersistentStateComponent<SingleFileExecutionConfig> {
 
+    /* NOTE: member should be "public" to be saved in xml */
     /* add_executable(): exe name */
     static final String EXECUTABLE_NAME_FILENAME = "%FILENAME%";
     public static final String DEFAULT_EXECUTABLE_NAME = EXECUTABLE_NAME_FILENAME;
-    private String executableName = DEFAULT_EXECUTABLE_NAME;
+    public String executableName = DEFAULT_EXECUTABLE_NAME;  // persistent member should be public
     /* set_target_properties(): runtime output directory */
     static final String PROJECTDIR = "%PROJECTDIR%";
     static final String FILEDIR = "%FILEDIR%";
     public static final String DEFAULT_RUNTIME_OUTPUT_DIRECTORY = "";
-    private String runtimeOutputDirectory = "";   // set empty string as default
+    public String runtimeOutputDirectory = "";   // set empty string as default, persistent member should be public
     private static final boolean DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG = false;
-    boolean notShowOverwriteConfirmDialog = DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG;
+    public boolean notShowOverwriteConfirmDialog = DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG;  // persistent member should be public
 
     SingleFileExecutionConfig() { }
 
@@ -51,14 +52,6 @@ public class SingleFileExecutionConfig implements PersistentStateComponent<Singl
         this.runtimeOutputDirectory = runtimeOutputDirectory;
     }
 
-    /** check if any configuration has done or not */
-    private boolean isEmpty() { return executableName == null; }
-
-    /** Initilization of state */
-    private void init() {
-
-    }
-
     @Nullable
     @Override
     public SingleFileExecutionConfig getState() {
@@ -73,7 +66,6 @@ public class SingleFileExecutionConfig implements PersistentStateComponent<Singl
     @Nullable
     public static SingleFileExecutionConfig getInstance(Project project) {
         SingleFileExecutionConfig sfec = ServiceManager.getService(project, SingleFileExecutionConfig.class);
-        sfec.init();
         return sfec;
     }
 }
