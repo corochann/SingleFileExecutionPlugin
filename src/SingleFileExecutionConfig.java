@@ -17,17 +17,19 @@ import org.jetbrains.annotations.Nullable;
 )
 public class SingleFileExecutionConfig implements PersistentStateComponent<SingleFileExecutionConfig> {
 
+    /* NOTE: member which you want to serialize should be public!! */
     /* add_executable(): exe name */
     static final String EXECUTABLE_NAME_FILENAME = "%FILENAME%";
     public static final String DEFAULT_EXECUTABLE_NAME = EXECUTABLE_NAME_FILENAME;
-    private String executableName = DEFAULT_EXECUTABLE_NAME;
+    public String executableName;
     /* set_target_properties(): runtime output directory */
     static final String PROJECTDIR = "%PROJECTDIR%";
     static final String FILEDIR = "%FILEDIR%";
     public static final String DEFAULT_RUNTIME_OUTPUT_DIRECTORY = "";
-    private String runtimeOutputDirectory = "";   // set empty string as default
+    public String runtimeOutputDirectory;
+    /* flag for showing overwrite confirmation dialog */
     private static final boolean DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG = false;
-    boolean notShowOverwriteConfirmDialog = DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG;
+    public boolean notShowOverwriteConfirmDialog;
 
     SingleFileExecutionConfig() { }
 
@@ -52,11 +54,18 @@ public class SingleFileExecutionConfig implements PersistentStateComponent<Singl
     }
 
     /** check if any configuration has done or not */
-    private boolean isEmpty() { return executableName == null; }
+    private boolean isEmpty() {
+        /*
+         * It should be true only first load.
+         * After init() done, it replies always false */
+        return executableName == null && !notShowOverwriteConfirmDialog && runtimeOutputDirectory == null;
+    }
 
     /** Initilization of state */
     private void init() {
-
+        executableName = DEFAULT_EXECUTABLE_NAME;
+        notShowOverwriteConfirmDialog = DEFAULT_NOT_SHOW_OVERWRITE_CONFIRM_DIALOG;
+        runtimeOutputDirectory = "";   // set empty string as default
     }
 
     @Nullable
@@ -68,12 +77,12 @@ public class SingleFileExecutionConfig implements PersistentStateComponent<Singl
     @Override
     public void loadState(SingleFileExecutionConfig singleFileExecutionConfig) {
         XmlSerializerUtil.copyBean(singleFileExecutionConfig, this);
+        if (isEmpty()) { init(); } // This initialization process should work only first launch.
     }
 
     @Nullable
     public static SingleFileExecutionConfig getInstance(Project project) {
         SingleFileExecutionConfig sfec = ServiceManager.getService(project, SingleFileExecutionConfig.class);
-        sfec.init();
         return sfec;
     }
 }
