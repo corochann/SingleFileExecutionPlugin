@@ -9,7 +9,7 @@ import java.awt.*;
 /**
  * GUI for the {@link SingleFileExecutionConfigurable}
  */
-public class SingleFileExecutionConfigurableGUI {
+class SingleFileExecutionConfigurableGUI {
     private JPanel rootPanel;
     private JTextField exeNameTextField;
     private JCheckBox notShowDialogCheckBox;

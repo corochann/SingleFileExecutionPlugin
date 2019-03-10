@@ -1,4 +1,4 @@
-<idea-plugin version="2">
+<idea-plugin>
   <id>com.corochann.plugin.clion.singlefileexecutionplugin</id>
   <name>C/C++ Single File Execution</name>
   <version>1.3</version>

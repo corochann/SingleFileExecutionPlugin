@@ -11,17 +11,16 @@ import javax.swing.*;
  * This ProjectConfigurable class appears on Settings dialog,
  * to let user to configure this plugin's behavior.
  */
-public class SingleFileExecutionConfigurable implements SearchableConfigurable {
+class SingleFileExecutionConfigurable implements SearchableConfigurable {
 
     private SingleFileExecutionConfigurableGUI mGUI;
-    private final SingleFileExecutionConfig mConfig;
 
     @SuppressWarnings("FieldCanBeLocal")
     private final Project mProject;
 
     public SingleFileExecutionConfigurable(@NotNull Project project) {
         mProject = project;
-        mConfig = SingleFileExecutionConfig.getInstance(project);
+        final SingleFileExecutionConfig mConfig = SingleFileExecutionConfig.getInstance(project);
     }
 
     @Nls
@@ -62,7 +61,7 @@ public class SingleFileExecutionConfigurable implements SearchableConfigurable {
     }
 
     @Override
-    public void apply() throws ConfigurationException {
+    public void apply() {
         mGUI.apply();
     }
 

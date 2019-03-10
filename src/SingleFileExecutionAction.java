@@ -13,8 +13,10 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,18 +24,18 @@ import java.util.regex.Pattern;
 /**
  *
  */
-public class SingleFileExecutionAction extends AnAction {
+class SingleFileExecutionAction extends AnAction {
     private static final Logger LOG = Logger.getInstance(SingleFileExecutionAction.class.getSimpleName());
 
-    public static final int EXE_NOT_EXIST = 0;
-    public static final int EXE_EXIST_SAME_SOURCE = 1;
-    public static final int EXE_EXIST_DIFFERENT_SOURCE = 2;
+    private static final int EXE_NOT_EXIST = 0;
+    private static final int EXE_EXIST_SAME_SOURCE = 1;
+    private static final int EXE_EXIST_DIFFERENT_SOURCE = 2;
     private VirtualFile sourceFile;
     private SingleFileExecutionConfig config;
     private Project project;
 
     @Override
-    public void actionPerformed(AnActionEvent e) {
+    public void actionPerformed(@NotNull AnActionEvent e) {
 
         /* Get all the required data from data keys */
         //final Editor editor = e.getRequiredData(CommonDataKeys.EDITOR);
@@ -65,8 +67,7 @@ public class SingleFileExecutionAction extends AnAction {
         String fileName = sourceFile != null ? sourceFile.getName() : null;  // source file name (but not include path)
 
         String exeName = buildExeName(config.getExecutableName());
-        String sourceName = fileName;
-        String relativeSourcePath = new File(project.getBasePath()).toURI().relativize(new File(sourceFile.getPath()).toURI()).getPath();
+        String relativeSourcePath = new File(Objects.requireNonNull(sourceFile.getParent().getPath())).toURI().relativize(new File(sourceFile.getPath()).toURI()).getPath();
 
         /* parse cmakelistDocument to check existence of exe_name */
         /* See http://mmasashi.hatenablog.com/entry/20091129/1259511129 for lazy, greedy search */
@@ -74,7 +75,7 @@ public class SingleFileExecutionAction extends AnAction {
 
         Pattern pattern = Pattern.compile(regex);
 
-        Scanner scanner = new Scanner(cmakelistDocument.getText());
+        Scanner scanner = new Scanner(Objects.requireNonNull(cmakelistDocument).getText());
         int exeExistFlag = EXE_NOT_EXIST;
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
@@ -97,7 +98,7 @@ public class SingleFileExecutionAction extends AnAction {
             case EXE_NOT_EXIST:
                 insertAddExecutable(cmakelistDocument, exeName, relativeSourcePath);
                 Notifications.Bus.notify (
-                        new Notification("singlefileexecutionaction", "Single File Execution Plugin", "add_executable added for " + sourceName + ".", NotificationType.INFORMATION)
+                        new Notification("singlefileexecutionaction", "Single File Execution Plugin", "add_executable added for " + fileName + ".", NotificationType.INFORMATION)
                 );
                 break;
             case EXE_EXIST_SAME_SOURCE:
@@ -121,36 +122,32 @@ public class SingleFileExecutionAction extends AnAction {
                     Notifications.Bus.notify(
                             new Notification("singlefileexecutionaction", "Single File Execution Plugin", "add_executable overwritten", NotificationType.INFORMATION)
                     );
-                } else {
-                    // cancel
-                    // do nothing so far
-                }
+                }  // cancel
+                // do nothing so far
+
                 break;
         }
 
     }
 
     private void insertAddExecutable(final Document cmakelistDocument, final String exeName, final String relativeSourcePath) {
-        ApplicationManager.getApplication().runWriteAction(new Runnable() {
-            @Override
-            public void run() {
-                String updatedText = cmakelistDocument.getText();
-                /* add_executable statement */
-                updatedText += "\n" + constructAddExecutable(exeName, relativeSourcePath);
-                /* set_target_properties statement */
-                String runtimeDir = config.getRuntimeOutputDirectory();
-                if (runtimeDir != null && !runtimeDir.equals("")) {
-                    String outputDir = quoteString(buildRuntimeOutputDirectory());
-                    updatedText += "\n" + constructSetTargetProperties(exeName, outputDir);
-                }
-                cmakelistDocument.setText(updatedText);
+        ApplicationManager.getApplication().runWriteAction(() -> {
+            String updatedText = cmakelistDocument.getText();
+            /* add_executable statement */
+            updatedText += "\n" + constructAddExecutable(exeName, relativeSourcePath);
+            /* set_target_properties statement */
+            String runtimeDir = config.getRuntimeOutputDirectory();
+            if (runtimeDir != null && !runtimeDir.equals("")) {
+                String outputDir = quoteString(buildRuntimeOutputDirectory());
+                updatedText += "\n" + constructSetTargetProperties(exeName, outputDir);
             }
+            cmakelistDocument.setText(updatedText);
         });
     }
 
     private void updateAddExecutable(final Document cmakelistDocument, final String exeName, final String relativeSourcePath) {
         String runtimeDir = config.getRuntimeOutputDirectory();
-        String updatedDocument = "";
+        StringBuilder updatedDocument = new StringBuilder();
 
         /*
          * This regular expression finds
@@ -182,16 +179,11 @@ public class SingleFileExecutionAction extends AnAction {
                     line += "\n" + constructSetTargetProperties(exeName, outputDir);
                 }
             }
-            updatedDocument += line + '\n';
+            updatedDocument.append(line).append('\n');
         }
         scanner.close();
-        final String updatedText = updatedDocument;
-        ApplicationManager.getApplication().runWriteAction(new Runnable() {
-            @Override
-            public void run() {
-                cmakelistDocument.setText(updatedText);
-            }
-        });
+        final String updatedText = updatedDocument.toString();
+        ApplicationManager.getApplication().runWriteAction(() -> cmakelistDocument.setText(updatedText));
     }
 
     /** building add_executable(exeName sourceFilePath) statement */
@@ -216,7 +208,7 @@ public class SingleFileExecutionAction extends AnAction {
         String newRuntimeOutputDirectory = config.getRuntimeOutputDirectory();
         /* source file's parent directory absolute path */
         //String sourceDir = new File(sourceFile.getPath()).getAbsoluteFile().getParentFile().getName();
-        String sourceDirRelativePath = new File(project.getBasePath()).toURI().relativize(
+        String sourceDirRelativePath = new File(Objects.requireNonNull(project.getBasePath())).toURI().relativize(
                 new File(sourceFile.getPath()).getParentFile().toURI()).getPath();
 
         newRuntimeOutputDirectory = newRuntimeOutputDirectory.replace(SingleFileExecutionConfig.PROJECTDIR, "${PROJECT_SOURCE_DIR}");
@@ -237,7 +229,7 @@ public class SingleFileExecutionAction extends AnAction {
     }
 
     @Override
-    public void update(AnActionEvent e) {
+    public void update(@NotNull AnActionEvent e) {
         final Project project = e.getData(CommonDataKeys.PROJECT);
         final Editor editor = e.getData(CommonDataKeys.EDITOR);
 
