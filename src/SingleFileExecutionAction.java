@@ -33,6 +33,7 @@ class SingleFileExecutionAction extends AnAction {
     private VirtualFile sourceFile;
     private SingleFileExecutionConfig config;
     private Project project;
+    private static final String CMAKE_FILE = "/CMakeLists.txt";
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
@@ -41,7 +42,16 @@ class SingleFileExecutionAction extends AnAction {
         //final Editor editor = e.getRequiredData(CommonDataKeys.EDITOR);
         project = e.getRequiredData(CommonDataKeys.PROJECT);
         config = SingleFileExecutionConfig.getInstance(project);
-        String cmakelistFilePath = project.getBasePath() + "/CMakeLists.txt";
+
+        // get source file (* currently selected file in editor)
+        sourceFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);
+
+
+        String cmakelistFilePath = Objects.requireNonNull(sourceFile).getParent().getPath() + CMAKE_FILE;
+        File cmakeOnCurrentFolder = new File(cmakelistFilePath);
+        if(!cmakeOnCurrentFolder.exists()){
+            cmakelistFilePath = project.getBasePath() + CMAKE_FILE;
+        }
 
         //Access document, caret, and selection
         //final Document document = editor.getDocument();
@@ -60,14 +70,15 @@ class SingleFileExecutionAction extends AnAction {
         }
         Document cmakelistDocument = FileDocumentManager.getInstance().getDocument(cmakelistFile);
 
-        // get source file (* currently selected file in editor)
-        sourceFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);
         //vFile.getCanonicalPath();   // source file path (absolute path)
         //vFile.getPath();            // source file path (absolute path)
         String fileName = sourceFile != null ? sourceFile.getName() : null;  // source file name (but not include path)
 
         String exeName = buildExeName(config.getExecutableName());
         String relativeSourcePath = new File(Objects.requireNonNull(sourceFile.getParent().getPath())).toURI().relativize(new File(sourceFile.getPath()).toURI()).getPath();
+        if(!cmakeOnCurrentFolder.exists()){
+            relativeSourcePath = new File(Objects.requireNonNull(project.getBasePath())).toURI().relativize(new File(sourceFile.getPath()).toURI()).getPath();
+        }
 
         /* parse cmakelistDocument to check existence of exe_name */
         /* See http://mmasashi.hatenablog.com/entry/20091129/1259511129 for lazy, greedy search */
