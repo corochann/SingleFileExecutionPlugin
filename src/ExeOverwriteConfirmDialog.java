@@ -9,14 +9,14 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 
-public class ExeOverwriteConfirmDialog extends JDialog {
+class ExeOverwriteConfirmDialog extends JDialog {
 
     private JPanel contentPane;
     private JButton buttonOK;
     private JButton buttonCancel;
     private JCheckBox doNotShowItCheckBox;
 
-    public static final int OK_FLAG_CANCEL = 0;
+    private static final int OK_FLAG_CANCEL = 0;
     public static final int OK_FLAG_OK = 1;
     /**
      * 0: not OK (when cancel button pressed etc.)
@@ -26,22 +26,14 @@ public class ExeOverwriteConfirmDialog extends JDialog {
     private static SingleFileExecutionConfig config;
 
 
-    public ExeOverwriteConfirmDialog() {
+    private ExeOverwriteConfirmDialog() {
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(buttonOK);
 
-        buttonOK.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onOK();
-            }
-        });
+        buttonOK.addActionListener(e -> onOK());
 
-        buttonCancel.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onCancel();
-            }
-        });
+        buttonCancel.addActionListener(e -> onCancel());
 
 // call onCancel() when cross is clicked
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -52,11 +44,7 @@ public class ExeOverwriteConfirmDialog extends JDialog {
         });
 
 // call onCancel() on ESCAPE
-        contentPane.registerKeyboardAction(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onCancel();
-            }
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+        contentPane.registerKeyboardAction(e -> onCancel(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
     }
 
     private void onOK() {
@@ -77,12 +65,7 @@ public class ExeOverwriteConfirmDialog extends JDialog {
         config = SingleFileExecutionConfig.getInstance(project);
         dialog.setLocationRelativeTo(null);
         dialog.doNotShowItCheckBox.setSelected(config.notShowOverwriteConfirmDialog);
-        dialog.doNotShowItCheckBox.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                config.notShowOverwriteConfirmDialog = dialog.doNotShowItCheckBox.isSelected();
-            }
-        });
+        dialog.doNotShowItCheckBox.addChangeListener(e -> config.notShowOverwriteConfirmDialog = dialog.doNotShowItCheckBox.isSelected());
         dialog.pack();
         dialog.setVisible(true);
         return dialog.okFlag;
